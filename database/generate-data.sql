@@ -79,9 +79,9 @@ BEGIN
         ALTER TABLE vehicles AUTO_INCREMENT = 1;
     END IF;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 1. Catálogo de tipos de vehículo
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     INSERT INTO vehicle_types (code, name, description, is_official, is_resident)
     VALUES ('OFICIAL', 'Vehículo Oficial', 'Exento de pago', 1, 0),
            ('RESIDENTE', 'Vehículo Residente', 'Tarifa residencial mensual', 0, 1),
@@ -91,9 +91,9 @@ BEGIN
     SELECT id INTO v_vtype_resident FROM vehicle_types WHERE code = 'RESIDENTE';
     SELECT id INTO v_vtype_general  FROM vehicle_types WHERE code = 'GENERAL';
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 2. Tarifas vigentes
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     INSERT INTO tariffs (vehicle_type_id, price_per_minute, is_exempt, valid_from)
     VALUES (v_vtype_official, 0.0000, 1, '2020-01-01 00:00:00'),
            (v_vtype_resident, 0.0500, 0, '2020-01-01 00:00:00'),
@@ -103,9 +103,9 @@ BEGIN
     SELECT id INTO v_tariff_res FROM tariffs WHERE vehicle_type_id = v_vtype_resident;
     SELECT id INTO v_tariff_gen FROM tariffs WHERE vehicle_type_id = v_vtype_general;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 3. Residentes y sus vehículos
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SET v_idx = 1;
     WHILE v_idx <= p_num_residents DO
         INSERT INTO residents (name, email, phone, identifier)
@@ -122,9 +122,9 @@ BEGIN
         SET v_idx = v_idx + 1;
     END WHILE;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 4. Vehículos no residentes
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SET v_idx = 1;
     WHILE v_idx <= p_num_nonresid DO
         INSERT INTO vehicles (plate, vehicle_type_id, model, color)
@@ -134,9 +134,9 @@ BEGIN
         SET v_idx = v_idx + 1;
     END WHILE;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 5. Vehículos oficiales
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SET v_idx = 1;
     WHILE v_idx <= p_num_officials DO
         INSERT INTO vehicles (plate, vehicle_type_id, model, color)
@@ -146,9 +146,9 @@ BEGIN
         SET v_idx = v_idx + 1;
     END WHILE;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 6. Estancias cerradas
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SET v_day = DATE_SUB(CURDATE(), INTERVAL p_months_back MONTH);
 
     WHILE v_day < CURDATE() DO
@@ -204,9 +204,9 @@ BEGIN
         SET v_day = DATE_ADD(v_day, INTERVAL 1 DAY);
     END WHILE;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 7. Estancias abiertas (una por vehículo distinto)
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SELECT COUNT(*) INTO v_vehicles_libres
     FROM vehicles v
     WHERE NOT EXISTS (SELECT 1 FROM stays s WHERE s.vehicle_id = v.id
@@ -240,9 +240,9 @@ BEGIN
         END WHILE;
     END IF;
 
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     -- 8. Resumen de lo generado
-    -- ----------------------------------------------------
+    ------------------------------------------------------
     SELECT
         (SELECT COUNT(*) FROM vehicle_types) AS tipos,
         (SELECT COUNT(*) FROM residents)     AS residentes,
