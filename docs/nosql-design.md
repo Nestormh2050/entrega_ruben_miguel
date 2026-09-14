@@ -147,18 +147,57 @@ Si se requiere consistencia fuerte (ej. cierre mensual): usar transacciones de M
 
 ---
 
-## Ventajas vs. modelo relacional
+## Comparativa: MongoDB vs. modelo relacional
 
 | Aspecto | MongoDB | MariaDB (relacional) |
 |---|---|---|
-| Escritura de eventos | Muy rápida (append-only, sin transacciones) | Rápida pero con overhead de índices y triggers |
-| Flexibilidad del modelo | Cada evento tiene su propia estructura | Requiere tabla polymórfica o columnas JSON |
-| Escalado horizontal | Nativo (sharding) | Limitado (replicación vertical) |
+| Escritura de eventos | Muy rápida (append-only, sin transacciones) | Rápida pero con overhead de transacciones, índices y triggers |
+| Flexibilidad del modelo | Cada evento tiene su propia estructura | Esquema rígido; requiere ALTER TABLE o columnas polimórficas |
+| Escalado horizontal | Nativo (sharding) | Limitado; particionamiento manual complejo |
 | Retención/TTL | Automático con TTL index | Manual (DELETE periódico o particionamiento) |
-| Consistencia fuerte | Opcional (transactions) | Siempre (ACID) |
+| Consistencia fuerte | Opcional (transactions multi-documento) | Predeterminada (ACID) |
 | Consultas complejas (JOINs) | Limitadas ($lookup) | Nativas y optimizadas |
 
+### Ventajas de MongoDB frente al modelo relacional (para auditoría de eventos)
+
+| # | Ventaja | Explicación aplicada al caso |
+|---|---|---|
+| 1 | **Escritura append-only optimizada** | Los eventos no requieren transacciones ni locks; se escriben más rápido que un INSERT con triggers e índices en un modelo normalizado. |
+| 2 | **Escalado horizontal nativo (sharding)** | Se reparte la colección `audit_events` entre múltiples servidores sin cambiar la lógica de la aplicación. Un relacional crecería solo verticalmente (más RAM/CPU en un nodo). |
+| 3 | **Modelo flexible sin migraciones** | Agregar un nuevo tipo de evento (`stay.payment`, `admin.login`) no requiere ALTER TABLE ni servicio de mantenimiento: el campo `details` acepta cualquier estructura. |
+| 4 | **TTL automático** | El índice TTL elimina documentos expirados sin necesidad de jobs de limpieza. En relacional hay que programar DELETE periódicos o particionamiento. |
+| 5 | **Menor costo de operación a gran volumen** | Con millones de eventos, escalar MongoDB es agregar nodos; escalar un relacional exige hardware costoso y particionado manual. |
+| 6 | **Sin integridad referencial que validar** | Cada evento es autocontenido; no hay restricciones de FK que ralenticen la escritura. |
+
+### Desventajas del modelo relacional en este escenario
+
+| # | Desventaja | Explicación aplicada al caso |
+|---|---|---|
+| 1 | **Cuello de botella en alta escritura por transacciones** | Cada INSERT transaccional implica locks de fila + registro en binlog; con eventos continuos, la escritura se degrada antes que en MongoDB. |
+| 2 | **Esquema rígido que exige migraciones** | Instrumentar un nuevo tipo de evento (ej. telemetría del sensor de barrera) requiere ALTER TABLE, lo que en tablas grandes bloquea lecturas (locks DDL) y exige ventanas de mantenimiento. |
+| 3 | **Escalado horizontal costoso y manual** | El estándar es replicación maestro-esclavo (vertical); el particionado real exige lógica de aplicación o herramientas externas. |
+| 4 | **Normalización obliga a JOINs** | Reportes de auditoría cruzando `stays` + `vehicles` + `tariffs` generan JOINs que, a millones de filas, consumen memoria y CPU. |
+| 5 | **Retención no automatizada** | No existe TTL nativo; la limpieza de auditoría requiere script + job programado, con riesgo de eliminar datos por error. |
+| 6 | **Cientos de columnas polimórficas** | Para emular eventos variables, se termina con tablas "sparse" (muchos NULL) o columnas tipo JSON que el relacional indexa con limitaciones. |
+| 7 | **Ventana de mantenimiento para particionamiento** | Si se particiona `audit_log` por mes, agregar un mes nuevo puede requerir acceso administrativo y pausas del sistema. |
+
+### Desventajas de MongoDB / NoSQL que se deben reconocer
+
+| # | Desventaja | Mitigación en este diseño |
+|---|---|---|
+| 1 | **Consistencia eventual por defecto** | Se usa `writeConcern: acknowledged` y lecturas locales; para el cierre mensual se pueden usar transacciones multi-documento (MongoDB 4.0+). |
+| 2 | **Sin integridad referencial ni FK** | Se mitiga con validación en la capa de aplicación y con el hecho de que cada evento es autocontenido. |
+| 3 | **Consultas ad-hoc y JOINs limitadas** | `$lookup` es menos eficiente que un JOIN relacional; se diseña la auditoría desnormalizada para evitarlo. |
+| 4 | **Riesgo de datos duplicados por desnormalización** | Los eventos se escriben una sola vez (append-only); no hay actualizaciones que propagar. |
+| 5 | **Control de privilegios menos granular que Oracle** | Se gestiona con roles de MongoDB a nivel de base de datos/colección, suficiente para auditoría. |
+| 6 | **Memoria: el working set debe caber en RAM** | Con ~15 MB/mes y retención de 12 meses, la colección no supera ~180 MB, muy por debajo del límite práctico. |
+| 7 | **Falta de estándar SQL** | El equipo necesita conocer Aggregation Pipeline; se documentan las consultas principales en este documento. |
+
 ---
+
+## Recomendación final
+
+Para la **auditoría y eventos del sistema**, MongoDB es la alternativa superior en volumen y flexibilidad, y sus desventajas se mitigan con el diseño propuesto. El **modelo relacional sigue siendo indispensable** para los datos transaccionales del negocio (estancias, pagos, cierres) que exigen ACID e integridad referencial. La arquitectura recomendada es **híbrida**: MariaDB para el núcleo de negocio + MongoDB como buffer de eventos de auditoría.
 
 ## Información que NO debería almacenarse en MongoDB
 
