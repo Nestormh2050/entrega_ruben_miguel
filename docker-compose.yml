@@ -1,0 +1,42 @@
+# ============================================================
+# DBA - Prueba Técnica Neology
+# Sistema de Control de Acceso Vehicular
+# docker-compose.yml — Levantamiento de MariaDB
+# ============================================================
+# Uso:
+#   docker compose up -d
+#   docker compose exec mariadb mariadb -uroot -p
+#
+# Variables de entorno: definir en .env (copiar de .env.example)
+# ============================================================
+
+services:
+  mariadb:
+    image: mariadb:12.3
+    container_name: neology_mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Defina MARIADB_ROOT_PASSWORD en .env}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-neology_parking}
+      MARIADB_USER: ${MARIADB_USER:-parking_app}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Defina MARIADB_PASSWORD en .env}
+    ports:
+      - "${HOST_PORT:-3305}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+      - ./database/security.sql:/docker-entrypoint-initdb.d/03-security.sql:ro
+      - ./database/monthly-close.sql:/docker-entrypoint-initdb.d/04-monthly-close.sql:ro
+      - ./database/queries.sql:/docker-entrypoint-initdb.d/05-queries.sql:ro
+      - ./database/indexes.sql:/docker-entrypoint-initdb.d/06-indexes.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mariadb_data:
+    name: neology_parking_data

@@ -1,0 +1,80 @@
+seccion
+=== CONTEO DE TABLAS ===
+total_tablas
+9
+seccion
+=== DATOS CARGADOS ===
+tipos	residentes	vehiculos	tarifas	estancias	cargos	cierres
+3	3	8	3	21	15	2
+seccion
+=== Q1: VEHICULOS DENTRO ===
+plate	tipo	ticket_number	entry_time
+RES-100	Vehículo Residente	TICKET-0016	2026-09-12 08:00:00
+GEN-001	Vehículo No Residente	TICKET-0017	2026-09-12 10:15:00
+OFI-002	Vehículo Oficial	TICKET-0018	2026-09-13 09:00:00
+GEN-002	Vehículo No Residente	TICKET-0019	2026-09-13 12:30:00
+RES-101	Vehículo Residente	TICKET-0020	2026-09-30 20:00:00
+seccion
+=== Q2: DURACION E IMPORTE (estancia 3) ===
+id	plate	ticket_number	entry_time	exit_time	duracion_min	tarifa	importe_calculado	importe_registrado
+3	GEN-001	TICKET-0003	2026-08-05 10:00:00	2026-08-05 10:30:00	30	0.5000	15.00	15.00
+seccion
+=== Q3a: CERRADO AGOSTO - ITEMS ===
+resident_id	residente	total_minutes	total_activities	total_amount	closed_by	closed_at
+3	Ana Martínez Ruiz	660	1	33.00	app_service	2026-09-01 02:00:00
+2	Juan Pérez López	180	2	9.00	app_service	2026-09-01 02:00:00
+1	María González García	210	2	10.50	app_service	2026-09-01 02:00:00
+seccion
+=== Q3b: EN CURSO SEPTIEMBRE - CALCULO EN VIVO ===
+resident_id	residente	minutos	estancias	importe
+1	María González García	3200	3	160.00
+2	Juan Pérez López	150	1	7.50
+3	Ana Martínez Ruiz	120	1	6.00
+seccion
+=== Q4: INGRESOS POR DIA Y TIPO ===
+dia	tipo	estancias	ingresos
+2026-08-02	Vehículo Residente	1	4.50
+2026-08-03	Vehículo Residente	1	6.00
+2026-08-05	Vehículo No Residente	1	15.00
+2026-08-15	Vehículo Residente	1	6.00
+2026-08-20	Vehículo No Residente	1	22.50
+2026-08-22	Vehículo Residente	1	33.00
+2026-08-28	Vehículo Residente	1	3.00
+2026-09-01	Vehículo No Residente	1	22.50
+2026-09-03	Vehículo Residente	1	4.50
+2026-09-05	Vehículo Residente	1	4.50
+2026-09-07	Vehículo No Residente	1	15.00
+2026-09-08	Vehículo Residente	1	7.50
+2026-09-10	Vehículo Residente	1	6.00
+seccion
+=== Q5: PROMEDIO PERMANENCIA ===
+tipo	estancias_fin	promedio_min
+Vehículo Oficial	2	300.00
+Vehículo Residente	9	166.67
+Vehículo No Residente	5	36.00
+seccion
+=== Q6: MULTIPLES ESTANCIAS ABIERTAS (vacio = regla cumplida) ===
+seccion
+=== Q7: INCONSISTENCIAS DETECTADAS ===
+inconsistencia	id	plate	entry_time	exit_time
+entrada_en_futuro	20	RES-101	2026-09-30 20:00:00	NULL
+pagada_datos_incompletos	21	GEN-001	2026-09-09 08:00:00	2026-09-09 08:30:00
+importe_no_coincide	21	GEN-001	2026-09-09 08:00:00	2026-09-09 08:30:00
+seccion
+=== Q8: MAYOR TIEMPO ACUMULADO EN SEPTIEMBRE ===
+plate	tipo	residente	minutos
+RES-100	Vehículo Residente	María González García	3110
+GEN-001	Vehículo No Residente	-	2960
+OFI-002	Vehículo Oficial	-	1520
+GEN-002	Vehículo No Residente	-	1340
+OFI-001	Vehículo Oficial	-	240
+RES-101	Vehículo Residente	Juan Pérez López	150
+RES-102	Vehículo Residente	Ana Martínez Ruiz	120
+RES-103	Vehículo Residente	María González García	90
+seccion
+=== CIERRE MENSUAL SEPTIEMBRE ===
+--------------
+CALL execute_monthly_close('2026-09', 'ruben_miguel')
+--------------
+
+ERROR 1644 (45000) at line 27: El periodo ya fue cerrado. No se permiten cierres duplicados.

@@ -1,0 +1,20 @@
+# Entorno y credenciales
+.env
+
+# Datos y logs
+data/
+*.log
+evidencias/*.log
+
+# Instaladores
+*.msi
+*.dmg
+
+# Linux / OS
+*.pid
+*.socket
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
+desktop.ini
