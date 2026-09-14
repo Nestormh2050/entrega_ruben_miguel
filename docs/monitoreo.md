@@ -219,7 +219,7 @@ healthcheck:
 
 **Recomendación:** para el tamaño esperado del sistema (miles de estancias/día), la suite Prometheus + Grafana + mariadb exporter es suficiente y de costo cero. Oracle Enterprise justificaría su licencia si el volumen exige auto-diagnóstico (ADDM) y failover automático con cómputo de pérdida cero.
 
----
+-----
 
 ## 7. Plan de implementación
 
