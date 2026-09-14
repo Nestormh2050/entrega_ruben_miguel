@@ -1,7 +1,7 @@
 # DBA — Prueba Técnica Neology
 
 > **Entrega:** Rubén Miguel Martínez  
-> **Rama:** `entrega/ruben-miguel`  
+> **Rama:** `main` (canónica; consolidada desde `entrega/ruben-miguel`)  
 > **Sistema:** Control de acceso vehicular para estacionamiento
 
 ---
