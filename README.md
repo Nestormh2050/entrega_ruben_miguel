@@ -15,6 +15,7 @@ entrega_ruben_miguel/
 │   ├── data.sql                # Datos de prueba (manualmente curados)
 │   ├── generate-data.sql       # Procedimiento de generación automática a escala
 │   ├── test_integridad.sql     # Suite de pruebas automáticas (25 chequeos)
+│   └── partitioning.sql        # Particionado RANGE mensual de audit_log (TO_DAYS)
 │   ├── queries.sql             # 8 consultas de negocio
 │   ├── indexes.sql             # Índices de optimización
 │   ├── monthly-close.sql       # Procedimiento de cierre mensual
@@ -191,6 +192,26 @@ Resultado esperado:
 SOURCE database/indexes.sql;
 -- Agrega 5 índices compuestos para optimizar las consultas principales
 ```
+
+---
+
+## Implementar particionamiento mensual
+
+```sql
+SOURCE database/partitioning.sql;
+-- Particiona audit_log por RANGE mensual (TO_DAYS) con pruning verificado.
+-- Cambia su PK a (id, changed_at), requisito del motor.
+
+-- Mantenimiento mensual (cron): asegura cobertura del periodo pedido
+CALL maint_partitions_audit(202704);   -- crea el mes siguiente si falta
+CALL maint_partitions_audit(202704);   -- no-op si ya está cubierto
+```
+
+**Nota técnica:** `stays`/`charges` NO se pueden particionar porque InnoDB no
+admite Foreign Keys en tablas particionadas y sus índices únicos no incluyen la
+columna de partición. La migración documentada (con sus tradeoffs) está en
+`scripts/partition-stays.sql`; la recomendación es mantener `stays` sin
+particionar a este volumen (≈0.6 GB a 24 meses).
 
 ---
 
