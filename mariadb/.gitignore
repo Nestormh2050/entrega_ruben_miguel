@@ -1,0 +1,14 @@
+# Entorno y credenciales
+.env
+
+# Datos locales
+data/
+*.log
+
+# Instaladores descargados
+*.msi
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
+desktop.ini
