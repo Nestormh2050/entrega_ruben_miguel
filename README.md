@@ -14,6 +14,7 @@ entrega_ruben_miguel/
 │   ├── schema.sql              # Modelo de datos completo
 │   ├── data.sql                # Datos de prueba (manualmente curados)
 │   ├── generate-data.sql       # Procedimiento de generación automática a escala
+│   ├── test_integridad.sql     # Suite de pruebas automáticas (25 chequeos)
 │   ├── queries.sql             # 8 consultas de negocio
 │   ├── indexes.sql             # Índices de optimización
 │   ├── monthly-close.sql       # Procedimiento de cierre mensual
@@ -155,6 +156,30 @@ CALL execute_monthly_close('2026-09', 'ruben_miguel');
 -- Intentar duplicar (debe fallar con error)
 CALL execute_monthly_close('2026-09', 'ruben_miguel');
 ```
+
+---
+
+## Ejecutar las pruebas automáticas de integridad
+
+```sql
+SOURCE database/test_integridad.sql;
+CALL test_integridad();
+```
+
+La suite ejecuta **25 chequeos** agrupados en:
+
+| Grupo | Qué valida |
+|---|---|
+| **Unicidad** | placas, tickets y "una sola estancia abierta por vehículo" |
+| **CHECK constraints** | `exit_time > entry_time`, importes y precios no negativos, rangos de tarifa válidos |
+| **Reglas de pago** | pagada sin `paid_at/amount`, importe ≠ minutos × tarifa, entrada en el futuro |
+| **Integridad referencial** | FK de stays, vehicles, charges y monthly_close_items sin referencias huérfanas |
+| **Reglas de negocio** | residente con `resident_id`, no residente sin él, `accumulated` con residente, `exempt` en cero, coherencia de cierres mensuales |
+
+Resultado esperado:
+- **INTEGRIDAD OK** (0 violaciones) sobre datos generados con `generate_test_data`.
+- **VIOLACIONES DETECTADAS** sobre `data.sql`, que incluye 3 anomalías intencionales
+  (entrada futura y pago incompleto) usadas en la consulta Q7 de la prueba.
 
 ---
 
