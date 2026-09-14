@@ -21,15 +21,15 @@
 
 USE neology_parking;
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Análisis de Consulta 1: vehículos dentro del estacionamiento
 -- Original:
 --   SELECT ... FROM stays WHERE exit_time IS NULL
 -- Problema: escanea toda la tabla si no hay índice sobre exit_time.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Se elimina el índice idx_stays_exit redundante y se reemplaza
 -- por un índice compuesto más selectivo que cubre la consulta.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 
 -- Eliminar el índice simple existente (será reemplazado)
 ALTER TABLE stays DROP INDEX idx_stays_exit;
@@ -48,12 +48,12 @@ CREATE INDEX idx_stays_open_by_vehicle
 --     a partir de ~1 millón de registros.
 
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Análisis de Consulta 7: inconsistencias de fechas
 -- Sub-consulta: entries where entry_time > NOW()
 -- Sub-consulta: pagada pero sin datos
 -- Procesamiento UNION hace full scans en ambas partes.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Se crea un índice que cubre la sub-consulta de fechas futuras
 -- y otro parcial (solo pagadas sin pago) para evitar full scan.
 -- ------------------------------------------------------------
@@ -76,16 +76,16 @@ CREATE INDEX idx_stays_paid_incomplete
 --     de estacionamiento donde las entradas son ~50/minuto máximo).
 
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Análisis de Consulta 4: ingresos por día y tipo
 -- Joins charges → stays → vehicles → vehicle_types
 -- GROUP BY date(charged_at), vt.name con file sort.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Los índices existentes cubren bien los joins; el cuello de botella
 -- es el GROUP BY sobre charges.charged_at.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Se agrega un índice sobre charges que cubra el GROUP BY y el SUM.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 
 CREATE INDEX idx_charges_status_date_amount
     ON charges (status, charge_type, charged_at, amount);
@@ -103,15 +103,15 @@ CREATE INDEX idx_charges_status_date_amount
 --     manualmente por contabilidad) reducen su tiempo de 400ms a 2ms.
 
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Análisis de Consulta 8: mayor tiempo acumulado
 -- JOIN sobre stays, vehicles, vehicle_types, residents
 -- GROUP BY plate, tipo, residente ORDER BY minutos DESC
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Se refuerza el índice de months-slicing: (entry_time) ya existe.
 -- Se reemplaza por un índice más ancho que cubra las columnas
 -- usadas para evitar "Using index" por tabla de datos.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 
 CREATE INDEX idx_stays_period_accrual
     ON stays (entry_time, vehicle_id, exit_time);
@@ -123,14 +123,14 @@ CREATE INDEX idx_stays_period_accrual
 -- Evita "Using index" el plan completamente, ejecutándose desde el B-tree.
 
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Análisis de Consulta 3b: reporte mensual residentes
 -- Similar a Q8 pero filtra por resident_id
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Para optimizar el GROUP BY por residente, se refuerza con
 -- un índice sobre vehicles.resident_id ya existente.
 -- El cuello de botella está en stays:
--- ------------------------------------------------------------
+--------------------------------------------------------------
 
 CREATE INDEX idx_stays_resident_period
     ON stays (vehicle_id, entry_time, exit_time);
@@ -142,9 +142,9 @@ CREATE INDEX idx_stays_resident_period
 -- logra navegando la FK de vehicles → stays.
 
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Resumen: impacto de los índices en operaciones de escritura
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Antes: stays = 5 índices (pk + 3 existentes + open_key unique)
 -- Después: stays = 8 índices (3 antiguos + 5 nuevos propuestos)
 -- Cada INSERT/UPDATE en stays ejecuta:
@@ -163,4 +163,4 @@ CREATE INDEX idx_stays_resident_period
 --   ... y restaurar después.
 -- * Se recomienda ADD INDEX con ALGORITHM=INPLACE en MariaDB ≥10.5
 --   para evitar la tabla temporal de datos copiados.
--- ------------------------------------------------------------
+--------------------------------------------------------------
