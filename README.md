@@ -37,7 +37,8 @@ entrega_ruben_miguel/
 │   ├── incident-response.md    # Diagnóstico de incidentes
 │   ├── monitoreo.md            # Propuesta de monitoreo y alertas
 │   ├── archivado.md            # Estrategia de archivado y retención
-│   └── nosql-design.md         # Propuesta NoSQL para auditoría
+│   ├── nosql-design.md         # Propuesta NoSQL para auditoría
+│   └── mariadb-vs-oracle.md    # Comparación detallada de motores
 ├── evidencias/                 # Resultados de ejecución en MariaDB local
 ├── docker-compose.yml          # Levantamiento de MariaDB
 ├── .env.example                # Plantilla de credenciales
