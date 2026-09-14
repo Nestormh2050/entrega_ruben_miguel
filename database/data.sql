@@ -16,9 +16,9 @@
 
 USE neology_parking;
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Tipos de vehículo
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO vehicle_types (id, code, name, description, is_official, is_resident, active) VALUES
     (1, 'OFICIAL',   'Vehículo Oficial',
      'Vehículos autorizados exentos de pago (administración, emergencias, directivos).', 1, 0, 1),
@@ -27,17 +27,17 @@ INSERT INTO vehicle_types (id, code, name, description, is_official, is_resident
     (3, 'GENERAL',   'Vehículo No Residente',
      'Visitantes y terceros; cobro de 0.50/min al registrar la salida.', 0, 0, 1);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Residentes
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO residents (id, name, email, phone, identifier, active) VALUES
     (1, 'María González García', 'maria.gonzalez@example.com', '55-1111-2233', 'CRED-001', 1),
     (2, 'Juan Pérez López',      'juan.perez@example.com',      '55-2222-3344', 'CRED-002', 1),
     (3, 'Ana Martínez Ruiz',     'ana.martinez@example.com',    '55-3333-4455', 'CRED-003', 1);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Vehículos
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO vehicles (id, plate, vehicle_type_id, resident_id, model, color, active) VALUES
     (1, 'OFI-001', 1, NULL, 'Sedán Administración', 'Rojo',   1),
     (2, 'RES-100', 2, 1,    'Aveo 2020',            'Blanco', 1),
@@ -48,17 +48,17 @@ INSERT INTO vehicles (id, plate, vehicle_type_id, resident_id, model, color, act
     (7, 'RES-103', 2, 1,    'Civic 2018',           'Plata',  1),
     (8, 'OFI-002', 1, NULL, 'Unidad de Emergencia', 'Verde',  1);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Tarifas (con vigencia)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO tariffs (id, vehicle_type_id, price_per_minute, is_exempt, valid_from, valid_to) VALUES
     (1, 1, 0.0000, 1, '2026-01-01 00:00:00', NULL),
     (2, 2, 0.0500, 0, '2026-01-01 00:00:00', NULL),
     (3, 3, 0.5000, 0, '2026-01-01 00:00:00', NULL);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Estancias
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Agosto 2026 (mes cerrado) -> estancias finalizadas
 INSERT INTO stays (id, vehicle_id, ticket_number, entry_time, exit_time, tariff_id, paid, paid_at, amount) VALUES
     (1, 2, 'TICKET-0001', '2026-08-02 08:00:00', '2026-08-02 09:30:00', 2, 1, '2026-08-02 09:30:00', 4.50),
@@ -87,18 +87,18 @@ INSERT INTO stays (id, vehicle_id, ticket_number, entry_time, exit_time, tariff_
     (18, 8, 'TICKET-0018', '2026-09-13 09:00:00', NULL, 1, 0, NULL, NULL),
     (19, 6, 'TICKET-0019', '2026-09-13 12:30:00', NULL, 3, 0, NULL, NULL);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Registros inconsistentes (para validar la consulta 7)
 --   * 20: entrada en el futuro (estancia abierta con fecha futura)
 --   * 21: marcada como pagada pero sin importe ni momento de pago
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO stays (id, vehicle_id, ticket_number, entry_time, exit_time, tariff_id, paid, paid_at, amount) VALUES
     (20, 3, 'TICKET-0020', '2026-09-30 20:00:00', NULL, 2, 0, NULL, NULL),
     (21, 5, 'TICKET-0021', '2026-09-09 08:00:00', '2026-09-09 08:30:00', 3, 1, NULL, NULL);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cargos / Pagos
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cargos de agosto (cerrados en el cierre mensual)
 INSERT INTO charges (stay_id, resident_id, amount, charge_type, status, charged_at, paid_at) VALUES
     (1, 1,  4.50, 'accumulated', 'closed', '2026-08-02 09:30:00', '2026-09-01 02:00:00'),
@@ -120,9 +120,9 @@ INSERT INTO charges (stay_id, resident_id, amount, charge_type, status, charged_
     (14, 2,  7.50, 'accumulated', 'pending', '2026-09-08 12:00:00', NULL),
     (15, 3,  6.00, 'accumulated', 'pending', '2026-09-10 10:00:00', NULL);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cierre mensual de agosto 2026 (histórico conservado)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 INSERT INTO monthly_closes (id, period, closed_at, closed_by, total_charges, stay_count, notes) VALUES
     (1, '2026-08', '2026-09-01 02:00:00', 'app_service',
      52.50, 8, 'Cierre de agosto; residentes acumulados liquidados en septiembre.');
