@@ -30,6 +30,7 @@ services:
       - ./database/monthly-close.sql:/docker-entrypoint-initdb.d/04-monthly-close.sql:ro
       - ./database/queries.sql:/docker-entrypoint-initdb.d/05-queries.sql:ro
       - ./database/indexes.sql:/docker-entrypoint-initdb.d/06-indexes.sql:ro
+      - ./database/generate-data.sql:/docker-entrypoint-initdb.d/07-generate-data.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s

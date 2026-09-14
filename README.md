@@ -12,7 +12,8 @@
 entrega_ruben_miguel/
 ├── database/
 │   ├── schema.sql              # Modelo de datos completo
-│   ├── data.sql                # Datos de prueba
+│   ├── data.sql                # Datos de prueba (manualmente curados)
+│   ├── generate-data.sql       # Procedimiento de generación automática a escala
 │   ├── queries.sql             # 8 consultas de negocio
 │   ├── indexes.sql             # Índices de optimización
 │   ├── monthly-close.sql       # Procedimiento de cierre mensual
@@ -115,6 +116,31 @@ Las 8 consultas:
 6. Vehículos con más de una estancia abierta (debe retornar vacío: regla forzada por BD)
 7. Registros con fechas o estados inconsistentes
 8. Vehículos con mayor tiempo acumulado durante el mes
+
+---
+
+## Generar datos automáticamente (a escala)
+
+Para probar las consultas con volúmenes grandes en lugar de los 21 registros curados:
+
+```sql
+SOURCE database/generate-data.sql;
+
+CALL generate_test_data(
+   p_months_back    => 12,   -- meses hacia atrás
+   p_stays_per_day  => 150,  -- estancias promedio por día
+   p_num_residents  => 80,   -- residentes con su vehículo
+   p_num_nonresid   => 120,  -- vehículos no residentes
+   p_num_officials  => 30,   -- vehículos oficiales
+   p_open_stays     => 25,   -- estancias abiertas (vehículos distintos)
+   p_clean_first    => TRUE  -- TRUE limpia los datos previos
+);
+```
+
+El procedimiento respeta todas las reglas de negocio y constraints del modelo
+(placa/ticket únicos, una sola estancia abierta por vehículo, `exit_time > entry_time`,
+oficiales sin cobro, residentes con tarifa acumulada mensual y no residentes pagando
+a la salida).
 
 ---
 
