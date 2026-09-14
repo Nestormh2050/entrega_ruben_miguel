@@ -192,7 +192,7 @@ WHERE s.exit_time IS NULL;
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY(format => 'ALL'));
 ```
 
-En Oracle, **DBMS_XPLAN** ofrece información más detallada que MariaDB ANALYZE:包括 costo estimado, cardinalidad, access predicates y filter predicates. Para análisis profundo, SQL Trace + TKPROF permite medir tiempos reales a nivel de operación de disco.
+En Oracle, **DBMS_XPLAN** ofrece información más detallada que MariaDB ANALYZE: costo estimado, cardinalidad, access predicates y filter predicates. Para análisis profundo, SQL Trace + TKPROF permite medir tiempos reales a nivel de operación de disco.
 
 ---
 
