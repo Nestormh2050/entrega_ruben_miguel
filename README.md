@@ -27,6 +27,7 @@ entrega_ruben_miguel/
 │   ├── performance-analysis.md # Análisis de rendimiento y optimización
 │   ├── backup-recovery.md      # Estrategia de respaldo, RPO/RTO
 │   ├── incident-response.md    # Diagnóstico de incidentes
+│   ├── monitoreo.md            # Propuesta de monitoreo y alertas
 │   └── nosql-design.md         # Propuesta NoSQL para auditoría
 ├── evidencias/                 # Resultados de ejecución en MariaDB local
 ├── docker-compose.yml          # Levantamiento de MariaDB
