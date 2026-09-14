@@ -71,15 +71,27 @@ BINLOG_DIR=$(mysql --host="$DB_HOST" --port="$DB_PORT" \
 if [ -n "$BINLOG_DIR" ]; then
     BINLOG_PATH=$(dirname "$BINLOG_DIR")
     echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Binlogs: $BINLOG_PATH" | tee -a "$LOGFILE"
+    mkdir -p "${BACKUP_DIR}/binlog_${DATE}"
     # Copiar binlogs recientes
     cp -v "$BINLOG_PATH"/mysql-bin.* "${BACKUP_DIR}/binlog_${DATE}/" >> "$LOGFILE" 2>&1 || true
 fi
 
-# ---- 4. Limpieza de respaldos antiguos (retención) ----
+# ---- 4. Copia fuera del sitio (opcional). Definir en el encabezado.
+#        Ejemplos: rsync/scp/rclone a bucket S3 o servidor remoto.
+#        OFFSITE_TARGET="usuario@backup:/backups/neology"
+#        OFFSITE_TARGET="rclone:neology-backups:/"
+OFFSITE_TARGET="${OFFSITE_TARGET:-}"
+if [ -n "$OFFSITE_TARGET" ]; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Copiando a destino externo..." | tee -a "$LOGFILE"
+    rsync -av "$BACKUP_DIR"/ "${OFFSITE_TARGET}" >> "$LOGFILE" 2>&1 || \
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [WARN] Copia externa falló (revisar)" | tee -a "$LOGFILE"
+fi
+
+# ---- 5. Limpieza de respaldos antiguos (retención) ----
 DELETED=$(find "$BACKUP_DIR" -name "*.sql.gz" -mtime +${RETENTION_DAYS} -delete -print | wc -l)
 echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Respaldos eliminados (> ${RETENTION_DAYS} días): ${DELETED}" | tee -a "$LOGFILE"
 
-# ---- 5. Validación: restaurar dump a una BD temporal de prueba ----
+# ---- 6. Validación: restaurar dump a una BD temporal de prueba ----
 TEST_DB="neology_parking_restore_test"
 echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Validación: restaurando en ${TEST_DB}..." | tee -a "$LOGFILE"
 

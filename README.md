@@ -21,8 +21,15 @@ entrega_ruben_miguel/
 │   ├── monthly-close.sql       # Procedimiento de cierre mensual
 │   └── security.sql            # Usuarios, roles y privilegios
 ├── scripts/
-│   ├── backup.sh               # Respaldo completo + validación
-│   └── restore.sh              # Restauración + PITR
+│   ├── backup.sh               # Respaldo completo + validación (Linux/mariabackup)
+│   ├── restore.sh              # Restauración + PITR
+│   ├── windows-backup.ps1      # Respaldo completo + validación (Windows)
+│   ├── backup.bat              # Wrapper de backup (Task Scheduler)
+│   ├── integridad.bat          # Wrapper test_integridad semanal
+│   ├── particiones.bat         # Wrapper mantenimiento de particiones
+│   ├── windows-schedule-task.ps1  # Registra las tareas en Task Scheduler
+│   ├── install-cron.sh         # Instala respaldo automático en cron (Linux)
+│   └── partition-stays.sql     # Migración documentada de stays (no ejecutar)
 ├── docs/
 │   ├── modelo-datos.md         # Documentación del modelo + diagrama ER
 │   ├── performance-analysis.md # Análisis de rendimiento y optimización
@@ -225,13 +232,46 @@ SOURCE database/security.sql;
 
 ---
 
-## Ejecutar respaldo
+## Automatizar los respaldos
+
+### Windows (Task Scheduler)
+
+```powershell
+# 1. Probar el respaldo manualmente (usa la misma contraseña del .env):
+$env:DB_BACKUP_PASSWORD = "<contraseña>"
+powershell -ExecutionPolicy Bypass -File scripts\windows-backup.ps1
+
+# 2. Registrar las 3 tareas (como Administrador):
+powershell -ExecutionPolicy Bypass -File scripts\windows-schedule-task.ps1
+#    Crea los wrappers *.bat y registra:
+#      - Neology_Backup_Diario      todos los días 02:00
+#      - Neology_Integridad_Semanal  lunes 03:30
+#      - Neology_Particiones_Mensual día 1,  04:00
+
+# 3. Asociar credenciales para ejecución desatendida:
+schtasks /Change /TN Neology_Backup_Diario /RU <usuario> /RP <pass>
+```
+
+El respaldo diario hace, en una sola pasada:
+1. **Dump completo** (`--single-transaction --routines --triggers --events`)
+2. **Compresión GZip** y **hash SHA256**
+3. **Retención** (30 días por defecto)
+4. **Validación de restauración** en BD temporal y conteo de tablas
+5. Copia de binlogs cuando están habilitados (cubren RPO ≤ 1 h junto al PITR)
+
+### Linux (cron)
 
 ```bash
-chmod +x scripts/backup.sh
-export DB_BACKUP_PASSWORD='<contraseña>'
-./scripts/backup.sh
+chmod +x scripts/install-cron.sh scripts/backup.sh
+sudo ./scripts/install-cron.sh   # instala cron + /etc/neology/mariadb.env
 ```
+
+Agenda: backup diario 02:00, `test_integridad()` lunes 03:30, particiones el día 1 a las 04:00.
+
+### Contraseñas
+
+Nunca se guardan en texto plano dentro del repositorio: se leen de la variable de
+entorno `DB_BACKUP_PASSWORD` (Windows) o de `/etc/neology/mariadb.env` (Linux, chmod 600).
 
 ---
 
