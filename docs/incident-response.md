@@ -6,7 +6,7 @@ La aplicación presenta tiempos de respuesta elevados. La base de datos alcanzó
 
 ---
 
-## 1. Validaciones iniciales
+## 1. Validaciones iniciales.
 
 | Paso | Comando | Qué se verifica |
 |---|---|---|
@@ -19,7 +19,7 @@ La aplicación presenta tiempos de respuesta elevados. La base de datos alcanzó
 
 ---
 
-## 2. Consultas de diagnóstico
+## 2. Consultas o commandos de diagnóstico.
 
 ```sql
 -- Conexiones actuales vs. máximo
@@ -73,7 +73,7 @@ ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
 
 ---
 
-## 3. Identificar sesiones bloqueadas
+## 3. Como identificar sesiones bloqueadas.
 
 ```sql
 -- Buscar transacciones que llevan mucho tiempo abiertas (posible bloqueo)
@@ -101,7 +101,7 @@ SHOW OPEN TABLES WHERE In_use > 0;
 
 ---
 
-## 4. Consultas de mayor consumo
+## 4. Como determinar las consultas de mayor consumo.
 
 ```sql
 -- Top 5 consultas más lentas en la última hora
@@ -127,7 +127,7 @@ ORDER BY COUNT_READ DESC;
 
 ---
 
-## 5. Acciones inmediatas para estabilizar
+## 5. Acciones inmediatas para estabilizar el servicio.
 
 | Prioridad | Acción | Comando |
 |---|---|---|
@@ -140,7 +140,7 @@ ORDER BY COUNT_READ DESC;
 
 ---
 
-## 6. Acciones preventivas
+## 6. Acciones preventivas.
 
 1. **Monitoreo proactivo:** configurar alertas de:
    - Conexiones > 80% del máximo.
@@ -157,7 +157,7 @@ ORDER BY COUNT_READ DESC;
 
 ---
 
-## 7. Riesgos antes de cancelar una sesión o consulta
+## 7. Riesgos antes de cancelar una sesión o consulta.
 
 | Riesgo | Consecuencia | Mitigación |
 |---|---|---|
@@ -170,7 +170,7 @@ ORDER BY COUNT_READ DESC;
 
 ---
 
-## 8. Consideraciones equivalentes para MariaDB y Oracle
+## 8. Consideraciones equivalentes para MariaDB y Oracle.
 
 | Diagnóstico | MariaDB | Oracle |
 |---|---|---|
