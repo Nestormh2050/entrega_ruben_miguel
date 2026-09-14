@@ -203,6 +203,8 @@ JOIN vehicles v ON v.id = s.vehicle_id
 WHERE s.paid = 1
   AND (s.paid_at IS NULL OR s.amount IS NULL)
 
+UNION
+
 -- 7d. Importe registrado que no coincide con el cálculo de la tarifa
 --     (una estancia pagada debe igualar minutos * tarifa).
 SELECT 'importe_no_coincide'       AS inconsistencia, s.id, v.plate, s.entry_time, s.exit_time
