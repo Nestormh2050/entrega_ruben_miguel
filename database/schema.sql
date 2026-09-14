@@ -22,9 +22,9 @@ CREATE DATABASE neology_parking
 
 USE neology_parking;
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Tipos de vehículo (extensible)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE vehicle_types (
     id              TINYINT UNSIGNED    NOT NULL AUTO_INCREMENT,
     code            VARCHAR(20)         NOT NULL,
@@ -42,9 +42,9 @@ CREATE TABLE vehicle_types (
     CONSTRAINT uq_vehicle_types_code UNIQUE (code)
 ) ENGINE = InnoDB COMMENT 'Catálogo de tipos de vehículo';
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Residentes
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE residents (
     id              INT UNSIGNED        NOT NULL AUTO_INCREMENT,
     name            VARCHAR(120)        NOT NULL,
@@ -61,9 +61,9 @@ CREATE TABLE residents (
     CONSTRAINT uq_residents_identifier UNIQUE (identifier)
 ) ENGINE = InnoDB COMMENT 'Residentes registrados con cobro mensual';
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Vehículos
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE vehicles (
     id              INT UNSIGNED        NOT NULL AUTO_INCREMENT,
     plate           VARCHAR(20)         NOT NULL,
@@ -84,9 +84,9 @@ CREATE TABLE vehicles (
         REFERENCES residents (id)
 ) ENGINE = InnoDB COMMENT 'Vehículos registrados';
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Tarifas (con vigencia para permitir histórico)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE tariffs (
     id              INT UNSIGNED        NOT NULL AUTO_INCREMENT,
     vehicle_type_id TINYINT UNSIGNED    NOT NULL,
@@ -105,9 +105,9 @@ CREATE TABLE tariffs (
     CONSTRAINT chk_tariffs_range CHECK (valid_to IS NULL OR valid_to > valid_from)
 ) ENGINE = InnoDB COMMENT 'Tarifas por tipo de vehículo con vigencia';
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Estancias (entradas y salidas)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE stays (
     id              BIGINT UNSIGNED     NOT NULL AUTO_INCREMENT,
     vehicle_id      INT UNSIGNED        NOT NULL,
@@ -145,9 +145,9 @@ CREATE INDEX idx_stays_entry ON stays (entry_time);
 CREATE INDEX idx_stays_exit ON stays (exit_time);
 CREATE INDEX idx_stays_status ON stays (exit_time, paid);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cargos / Pagos
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE charges (
     id              BIGINT UNSIGNED     NOT NULL AUTO_INCREMENT,
     stay_id         BIGINT UNSIGNED     NOT NULL,
@@ -173,9 +173,9 @@ CREATE TABLE charges (
 CREATE INDEX idx_charges_stay ON charges (stay_id);
 CREATE INDEX idx_charges_resident ON charges (resident_id, charged_at);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cierres mensuales (histórico conservado)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE monthly_closes (
     id              BIGINT UNSIGNED     NOT NULL AUTO_INCREMENT,
     period          CHAR(7)             NOT NULL
@@ -191,9 +191,9 @@ CREATE TABLE monthly_closes (
     CONSTRAINT uq_monthly_closes_period UNIQUE (period)
 ) ENGINE = InnoDB COMMENT 'Cabecera de cierres mensuales (previene duplicados por UNIQUE period)';
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Cierre mensual por residente (detalle)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE monthly_close_items (
     id                  BIGINT UNSIGNED     NOT NULL AUTO_INCREMENT,
     monthly_close_id    BIGINT UNSIGNED     NOT NULL,
@@ -213,9 +213,9 @@ CREATE TABLE monthly_close_items (
 
 CREATE INDEX idx_mci_close ON monthly_close_items (monthly_close_id);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Auditoría de operaciones (Parte 5 realcionada)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 CREATE TABLE audit_log (
     id              BIGINT UNSIGNED     NOT NULL AUTO_INCREMENT,
     table_name      VARCHAR(64)         NOT NULL,
@@ -235,9 +235,9 @@ CREATE TABLE audit_log (
 CREATE INDEX idx_audit_table_record ON audit_log (table_name, record_id);
 CREATE INDEX idx_audit_changed_at ON audit_log (changed_at);
 
--- ------------------------------------------------------------
+--------------------------------------------------------------
 -- Triggers de auditoría (tablas críticas)
--- ------------------------------------------------------------
+--------------------------------------------------------------
 DELIMITER $$
 
 CREATE TRIGGER trg_stays_audit_insert
