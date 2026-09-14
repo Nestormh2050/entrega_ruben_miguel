@@ -56,7 +56,7 @@ CREATE INDEX idx_stays_open_by_vehicle
 --------------------------------------------------------------
 -- Se crea un índice que cubre la sub-consulta de fechas futuras
 -- y otro parcial (solo pagadas sin pago) para evitar full scan.
--- ------------------------------------------------------------
+--------------------------------------------------------------
 
 -- Para detectar entradas futuras: rango sobre entry_time.
 CREATE INDEX idx_stays_entry_future
