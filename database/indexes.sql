@@ -31,15 +31,44 @@ USE neology_parking;
 -- por un índice compuesto más selectivo que cubre la consulta.
 --------------------------------------------------------------
 
--- Eliminar el índice simple existente (será reemplazado)
-ALTER TABLE stays DROP INDEX idx_stays_exit;
+-- Eliminar el índice simple existente (será reemplazado).
+-- Idempotente: solo se dropea si el índice existe realmente.
+SET @has_idx_stays_exit = (
+    SELECT COUNT(*)
+    FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_exit'
+);
+
+SET @stmt_drop_stays_exit = IF(
+    @has_idx_stays_exit > 0,
+    'ALTER TABLE stays DROP INDEX idx_stays_exit',
+    'SELECT ''idx_stays_exit no existe; se omite el DROP'' AS nota'
+);
+PREPARE s_drop_stays_exit FROM @stmt_drop_stays_exit;
+EXECUTE s_drop_stays_exit;
+DEALLOCATE PREPARE s_drop_stays_exit;
 
 -- Nuevo índice compuesto: filter + columnas de cobertura
 -- exit_time=1ra columna (filtro por igualdad), vehicle_id incluido.
 -- Un "covering index": el motor obtiene todo desde el índice sin
 -- tocar la tabla de datos (rows=5, no peek).
-CREATE INDEX idx_stays_open_by_vehicle
-    ON stays (exit_time, vehicle_id);
+-- Idempotente: solo se crea si aún no existe.
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_open_by_vehicle'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_stays_open_by_vehicle ON stays (exit_time, vehicle_id)',
+    'SELECT ''idx_stays_open_by_vehicle ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- Impacto en escritura:
 --   * INSERT de una estancia: o(1) adicional (un solo B-tree).
@@ -59,16 +88,40 @@ CREATE INDEX idx_stays_open_by_vehicle
 --------------------------------------------------------------
 
 -- Para detectar entradas futuras: rango sobre entry_time.
-CREATE INDEX idx_stays_entry_future
-    ON stays (entry_time);
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_entry_future'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_stays_entry_future ON stays (entry_time)',
+    'SELECT ''idx_stays_entry_future ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- Para "pagada sin momento de pago": filtro parcial eficiente
 -- con un índice compuesto de cobertura sobre las 3 columnas
 -- usadas en la condición.
 -- (MiSQL soporta índices con columnas booleanas sin necesidad de
 -- filtros parciales en versiones actuales.)
-CREATE INDEX idx_stays_paid_incomplete
-    ON stays (paid, paid_at, amount);
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_paid_incomplete'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_stays_paid_incomplete ON stays (paid, paid_at, amount)',
+    'SELECT ''idx_stays_paid_incomplete ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- Impacto en escritura:
 --   * 2 índices adicionales sobre stays → 2 B-tree updates por INSERT.
@@ -87,8 +140,20 @@ CREATE INDEX idx_stays_paid_incomplete
 -- Se agrega un índice sobre charges que cubra el GROUP BY y el SUM.
 --------------------------------------------------------------
 
-CREATE INDEX idx_charges_status_date_amount
-    ON charges (status, charge_type, charged_at, amount);
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'charges'
+      AND INDEX_NAME   = 'idx_charges_status_date_amount'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_charges_status_date_amount ON charges (status, charge_type, charged_at, amount)',
+    'SELECT ''idx_charges_status_date_amount ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- El orden se justifica:
 --   1. status='paid'/'closed' → filtro de igualdad (más selectivo primero)
@@ -113,8 +178,20 @@ CREATE INDEX idx_charges_status_date_amount
 -- usadas para evitar "Using index" por tabla de datos.
 --------------------------------------------------------------
 
-CREATE INDEX idx_stays_period_accrual
-    ON stays (entry_time, vehicle_id, exit_time);
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_period_accrual'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_stays_period_accrual ON stays (entry_time, vehicle_id, exit_time)',
+    'SELECT ''idx_stays_period_accrual ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- Covering index para la consulta 8:
 --   1. entry_time = filtro de rango (mes específico)
@@ -132,8 +209,20 @@ CREATE INDEX idx_stays_period_accrual
 -- El cuello de botella está en stays:
 --------------------------------------------------------------
 
-CREATE INDEX idx_stays_resident_period
-    ON stays (vehicle_id, entry_time, exit_time);
+SET @has_idx = (
+    SELECT COUNT(*) FROM information_schema.statistics
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'stays'
+      AND INDEX_NAME   = 'idx_stays_resident_period'
+);
+SET @stmt_create = IF(
+    @has_idx = 0,
+    'CREATE INDEX idx_stays_resident_period ON stays (vehicle_id, entry_time, exit_time)',
+    'SELECT ''idx_stays_resident_period ya existe; se omite'' AS nota'
+);
+PREPARE s_create FROM @stmt_create;
+EXECUTE s_create;
+DEALLOCATE PREPARE s_create;
 
 -- Cobertura: vehicle_id para JOIN, entry_time para rango del mes,
 -- exit_time para cálculo de minutos. Ordering: vehicle_id primero

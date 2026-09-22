@@ -34,8 +34,24 @@ USE neology_parking;
 
 --------------------------------------------------------------
 -- 0. Idempotencia: si ya estaba particionada, quitar particiones
---------------------------------------------------------------
-ALTER TABLE audit_log REMOVE PARTITIONING;
+--    (verificando antes si realmente tiene particiones)
+-- ------------------------------------------------------------
+SET @audit_has_partitions = (
+    SELECT COUNT(*)
+    FROM information_schema.PARTITIONS
+    WHERE TABLE_SCHEMA = 'neology_parking'
+      AND TABLE_NAME   = 'audit_log'
+      AND PARTITION_NAME IS NOT NULL
+);
+
+SET @stmt_remove_partition = IF(
+    @audit_has_partitions > 0,
+    'ALTER TABLE audit_log REMOVE PARTITIONING',
+    'SELECT ''audit_log no estaba particionada; no se requiere REMOVE'' AS nota'
+);
+PREPARE s_remove_partition FROM @stmt_remove_partition;
+EXECUTE s_remove_partition;
+DEALLOCATE PREPARE s_remove_partition;
 
 --------------------------------------------------------------
 -- 1. Cambiar PK de audit_log a (id, changed_at)

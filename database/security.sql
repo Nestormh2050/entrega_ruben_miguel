@@ -114,8 +114,7 @@ CREATE USER IF NOT EXISTS 'parking_dba'@'%'
 GRANT ALL PRIVILEGES
     ON neology_parking.* TO 'parking_dba'@'%';
 
-GRANT SUPER ON *.* TO 'parking_dba'@'%'
-    COMMENT 'Necesario para procesos administrativos (no rutinarios)';
+GRANT SUPER ON *.* TO 'parking_dba'@'%';
 
 --------------------------------------------------------------------------
 -- 6. Auditoría de operaciones administrativas
