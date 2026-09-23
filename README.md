@@ -134,7 +134,7 @@ Las 8 consultas:
 
 ## Generar datos automáticamente (a escala)
 
-Para probar las consultas con volúmenes grandes en lugar de los 21 registros curados:
+Para probar las consultas con volúmenes grandes en lugar de los 21 registros:
 
 ```sql
 SOURCE database/generate-data.sql;
