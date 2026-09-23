@@ -9,20 +9,37 @@
 # Altas crontab para el usuario que ejecuta el script (DBAs):
 #  00 02 * * *   backup diario (RPO <= 1 h cubierto por binlogs)
 #  30 03 * * 1   test_integridad() semanal
-#  00 04 1 * *   mantenimiento de particiones de audit_log
-#  00 05 1 * *   archivado mensual (scripts/archive.sh, si se activa)
+#  00 04 1 * *   mantenimiento de particiones de audit_log (mes en curso + 1)
 #
 # La contraseña la provee /etc/neology/mariadb.env (modo 600).
 # ============================================================
 
 set -euo pipefail
 
-REPO="/opt/entrega_ruben_miguel"
+# ---- Configuración editable ----
+# Ruta del repositorio: por defecto la detecta desde la ubicación de este script.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="${NEOLOGY_REPO:-$(dirname "$SCRIPT_DIR")}"
+# Puerto del servidor MariaDB (3306 = nativo en Linux; 3305 = contenedor Docker).
+DB_PORT="${NEOLOGY_DB_PORT:-3306}"
+# Cliente: se detecta automáticamente.
 MYSQL_CLIENT=$(command -v mariadb || command -v mysql)
 
-# Config mínima
 CONF_DIR="/etc/neology"
 CONF_FILE="$CONF_DIR/mariadb.env"
+
+# ---- Verificar requisitos ----
+if [ ! -x "$REPO/scripts/backup.sh" ]; then
+    echo "ERROR: No se encuentra $REPO/scripts/backup.sh"
+    echo "Exporta NEOLOGY_REPO=/ruta/al/repositorio o ejecuta desde el repositorio." >&2
+    exit 1
+fi
+if [ -z "$MYSQL_CLIENT" ]; then
+    echo "ERROR: No se encontró el cliente mariadb/mysql. Instálalo o ajusta PATH." >&2
+    exit 1
+fi
+
+# ---- Secreto ----
 if [ ! -f "$CONF_FILE" ]; then
     echo "Creando $CONF_FILE (edítalo con la contraseña real, chmod 600)..."
     mkdir -p "$CONF_DIR"
@@ -31,25 +48,33 @@ if [ ! -f "$CONF_FILE" ]; then
     echo "IMPORTANTE: edita $CONF_FILE y pon la contraseña real."
 fi
 
-# Cron jobs (se instalan en el crontab del usuario actual)
+# ---- Próximo mes para las particiones (AAAAMM) ----
+NEXT_MONTH=$(date -d "+1 month" '+%Y%m' 2>/dev/null || date -v +1m '+%Y%m')
+
+# ---- Cron jobs (se instalan en el crontab del usuario actual) ----
 CRON_JOBS=(
-    "0 2 * * *   . /etc/neology/mariadb.env; $REPO/scripts/backup.sh >> /var/log/neology_parking/cron.log 2>&1"
-    "30 3 * * 1  . /etc/neology/mariadb.env; $MYSQL_CLIENT -h127.0.0.1 -P3305 -u parking_dba -p\$DB_BACKUP_PASSWORD -e 'CALL neology_parking.test_integridad();' >> /var/log/neology_parking/cron.log 2>&1"
-    "0 4 1 * *   . /etc/neology/mariadb.env; $MYSQL_CLIENT -h127.0.0.1 -P3305 -u parking_dba -p\$DB_BACKUP_PASSWORD -e 'CALL neology_parking.maint_partitions_audit(202705);' >> /var/log/neology_parking/cron.log 2>&1"
+    "0 2 * * *   . $CONF_FILE; $REPO/scripts/backup.sh >> /var/log/neology_parking/cron.log 2>&1"
+    "30 3 * * 1  . $CONF_FILE; $MYSQL_CLIENT -h127.0.0.1 -P$DB_PORT -u parking_dba -p\$DB_BACKUP_PASSWORD -e 'CALL neology_parking.test_integridad();' >> /var/log/neology_parking/cron.log 2>&1"
+    "0 4 1 * *   . $CONF_FILE; $MYSQL_CLIENT -h127.0.0.1 -P$DB_PORT -u parking_dba -p\$DB_BACKUP_PASSWORD -e 'CALL neology_parking.maint_partitions_audit($NEXT_MONTH);' >> /var/log/neology_parking/cron.log 2>&1"
 )
 
 mkdir -p /var/log/neology_parking
 
-# Anexa líneas si no existen
-( crontab -l 2>/dev/null || true ) > /tmp/neology_cron.$$
+# ---- Anexa cada línea si su firma aún no existe en el crontab ----
+TMP_CRON=$(mktemp /tmp/neology_cron.XXXXXX)
+trap 'rm -f "$TMP_CRON"' EXIT
+crontab -l 2>/dev/null || true > "$TMP_CRON"
 for j in "${CRON_JOBS[@]}"; do
-    if ! grep -Fq "neology_parking" /tmp/neology_cron.$$; then
-        echo "$j" >> /tmp/neology_cron.$$
+    SIGNATURE=$(echo "$j" | tr -s ' ' | awk '{print $1, $2, $3, $4, $5}')
+    if ! grep -Fq "$SIGNATURE" "$TMP_CRON"; then
+        echo "$j" >> "$TMP_CRON"
+        echo "Agregado: $SIGNATURE"
+    else
+        echo "Ya existe: $SIGNATURE"
     fi
 done
-crontab /tmp/neology_cron.$$
-rm -f /tmp/neology_cron.$$
+crontab "$TMP_CRON"
 
 echo "Crontab actualizado:"
 crontab -l
-echo "Nota: ajusta 202705 al próximo mes y REVISA $CONF_FILE (contraseña)."
+echo "Nota: REVISA $CONF_FILE (contraseña real) y ajusta NEOLOGY_DB_PORT si no es $DB_PORT."
