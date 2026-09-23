@@ -11,6 +11,20 @@ El modelo relacional soporta un sistema de control de acceso vehicular para esta
 
 ---
 
+## Visualización del diagrama en VS Code
+
+El diagrama ER está escrito en **Mermaid** y se renderiza directamente en la vista previa de Markdown de Visual Studio Code (>= 1.121), sin necesidad de Typora ni Obsidian.
+
+Cómo verlo:
+
+1. Abre `docs/modelo-datos.md` en VS Code.
+2. Pulsa `Ctrl+Shift+V` (o clic derecho → *Abrir vista previa*).
+3. La extensión oficial **Mermaid Chart** (`MermaidChart.vscode-mermaid-chart`, recomendada en `.vscode/extensions.json`) detecta el bloque `mermaid` de forma automática; además de renderizarlo añade un enlace **Edit diagram** para editarlo con vista previa en vivo.
+
+> **Solución de problemas:** si el diagrama aparece vacío o se dibuja y desaparece, es un conflicto conocido entre la extensión Mermaid Chart y el renderizador nativo de VS Code. Ve a la vista de extensiones (`Ctrl+Shift+X`), busca `@builtin mermaid` y desactiva *Mermaid Markdown Features* (o viceversa) y recarga la ventana (`Ctrl+Shift+P` → *Developer: Reload Window*).
+
+---
+
 ## Diagrama Entidad-Relación (Mermaid)
 
 ```mermaid

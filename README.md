@@ -43,6 +43,7 @@ entrega_ruben_miguel/
 ├── docker-compose.yml          # Levantamiento de MariaDB
 ├── .env.example                # Plantilla de credenciales
 ├── .gitignore                  # Excluye .env, datos, logs
+├── .vscode/                    # Config de editor: extensiones recomendadas
 └── README.md                   # Este archivo
 ```
 

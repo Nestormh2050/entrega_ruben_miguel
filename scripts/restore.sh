@@ -108,7 +108,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Respaldo de seguridad creado." | tee -
 echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] Restaurando desde backup..." | tee -a "$LOGFILE"
 
 # Opción: eliminar BD antes de restaurar (si el dump incluye CREATE DATABASE)
-gunzip -c "$BACKUP_FILE" >> "$LOGFILE" 2>&1 \
+gunzip -c "$BACKUP_FILE" 2>>"$LOGFILE" \
     | mysql --host="$DB_HOST" --port="$DB_PORT" \
         --user="$DB_USER" --password="$DB_PASS" \
         --force 2>>"$LOGFILE"
