@@ -96,15 +96,18 @@ GRANT SELECT, INSERT, UPDATE
 -- 5. Usuario DBA (administrador completo)
 --    Acceso total. Debe usarse solo para tareas de administración.
 --    Uso: el equipo de BD en labores de mantenimiento y soporte avanzado.
+--    Nota: se otorgan privilegios globales (*.*) para poder ejecutar
+--          respaldos y su validación (scripts/windows-backup.ps1 y
+--          scripts/backup.sh restauran el dump en una BD temporal
+--          de prueba "neology_parking_restore_test").
 -- ============================================================
 CREATE USER IF NOT EXISTS 'parking_dba'@'%'
     IDENTIFIED BY '<CAMBIAR_PASSWORD_DBA>'
     PASSWORD EXPIRE NEVER;
 
 GRANT ALL PRIVILEGES
-    ON neology_parking.* TO 'parking_dba'@'%';
-
-GRANT SUPER ON *.* TO 'parking_dba'@'%';
+    ON *.* TO 'parking_dba'@'%'
+    WITH GRANT OPTION;
 -- ============================================================
 -- 6. Auditoría de operaciones administrativas
 --    Ya cubierta por los triggers en schema.sql (audit_log).

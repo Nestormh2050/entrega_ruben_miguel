@@ -105,9 +105,18 @@ try {
     Set-Content -LiteralPath $TmpSql -Encoding UTF8
 
 & $Maria --host=$DBHost --port=$DBPort --user=$DBUser --password=$DBPass -e "CREATE DATABASE IF NOT EXISTS $TestDB;"
-& cmd.exe /c "`"$Maria`" --host=$DBHost --port=$DBPort --user=$DBUser --password=$DBPass $TestDB < `"$TmpSql`" " 2>&1 | Add-Content -LiteralPath $LogFile
+$RestoreCode = 0
+$SqlText = Get-Content -LiteralPath $TmpSql -Raw
+$OutEnc = $OutputEncoding
+$OutputEncoding = [System.Text.Encoding]::UTF8
+try {
+    $SqlText | & $Maria --host=$DBHost --port=$DBPort --user=$DBUser --password=$DBPass $TestDB
+} finally {
+    $OutputEncoding = $OutEnc
+}
+$RestoreCode = $LASTEXITCODE
 
-if ($LASTEXITCODE -eq 0) {
+if ($RestoreCode -eq 0) {
     $TableCount = (& $Maria --host=$DBHost --port=$DBPort --user=$DBUser --password=$DBPass -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$TestDB';").Trim()
     Write-Log "Tablas restauradas en validación: $TableCount"
 } else {
