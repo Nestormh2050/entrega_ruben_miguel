@@ -1,7 +1,7 @@
 -- ==================================================================================
 -- DBA - Prueba Técnica Neology
 -- Sistema de Control de Acceso Vehicular (Estacionamiento)
--- Parte 2: Consultas SQL
+-- Parte 2: Consultas SQL (Q1 - Q8)
 -- Motor: MariaDB 12.x
 -- ===================================================================================
 -- Convenciones:
@@ -11,11 +11,25 @@
 --   * Los importes se calculan con la tarifa vigente registrada en
 --     la estancia (stays.tariff_id).
 -- ====================================================================================
+-- ÍNDICE DE CONSULTAS
+--   Q1  Vehículos actualmente dentro del estacionamiento
+--   Q2  Duración e importe de una estancia                (param: @STAY_ID)
+--   Q3  Reporte mensual de residentes                     (param: @PERIODO)
+--   Q4  Ingresos por día y tipo de vehículo
+--   Q5  Promedio de permanencia por tipo de vehículo
+--   Q6  Vehículos con más de una estancia abierta (debe salir vacío)
+--   Q7  Registros con fechas/importes inconsistentes
+--   Q8  Vehículos con mayor tiempo acumulado en el mes    (param: @PERIODO_MES)
+-- ====================================================================================
 
 USE neology_parking;
--- ============================================================
--- 1. Consultar loa Vehículos que se encuentran actualmente dentro del estacionamiento.
--- ============================================================
+
+-- ====================================================================================
+--  Q1  |  Vehículos actualmente dentro del estacionamiento
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q1: Vehículos actualmente dentro del estacionamiento'            AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SELECT
     v.plate,
     vt.name                                    AS tipo_vehiculo,
@@ -29,10 +43,14 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 LEFT JOIN residents r ON r.id = v.resident_id
 WHERE s.exit_time IS NULL
 ORDER BY s.entry_time;
--- ============================================================
--- 2. Calcular la duración y el importe correspondiente a una estancia.
---    Reemplaza @STAY_ID por el id de la estancia (ej. 3).
--- ============================================================
+
+-- ====================================================================================
+--  Q2  |  Duración e importe de una estancia
+--       (Reemplaza @STAY_ID por el id de la estancia, ej. 3)
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q2: Duración e importe de una estancia (param: @STAY_ID)'        AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SET @STAY_ID = 3;
 
 SELECT
@@ -65,15 +83,20 @@ JOIN vehicles v      ON v.id = s.vehicle_id
 JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 JOIN tariffs t        ON t.id = s.tariff_id
 WHERE s.id = @STAY_ID;
--- ============================================================
--- 3. Generar el reporte mensual de residentes.
---    Reemplaza @PERIODO con el periodo en formato "YYYY-MM".
---    Se apoya en el cierre mensual para periodos cerrados y lo
---    recalcula en vivo para el periodo en curso.
--- ============================================================
+
+-- ====================================================================================
+--  Q3  |  Reporte mensual de residentes
+--       (Reemplaza @PERIODO con el periodo en formato "YYYY-MM")
+--       Se apoya en el cierre mensual para periodos cerrados y lo
+--       recalcula en vivo para el periodo en curso.
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q3: Reporte mensual de residentes (param: @PERIODO)'             AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SET @PERIODO = '2026-09';
 
 -- 3a. Periodos cerrados (histórico materializado)
+SELECT '--- Q3a: Periodos cerrados (histórico) ---'                     AS 'PARTE';
 SELECT
     mci.resident_id,
     r.name                                 AS residente,
@@ -91,6 +114,7 @@ WHERE mc.period = @PERIODO
 ORDER BY r.name;
 
 -- 3b. Periodo en curso (cálculo en vivo sobre estancias de residentes)
+SELECT '--- Q3b: Periodo en curso (cálculo en vivo) ---'                AS 'PARTE';
 SELECT
     v.resident_id,
     r.name                                             AS residente,
@@ -113,9 +137,13 @@ WHERE v.resident_id IS NOT NULL
   AND s.entry_time <= NOW()   -- se excluyen entradas futuras (anomalía de Q7)
 GROUP BY v.resident_id, r.name, DATE_FORMAT(s.entry_time, '%Y-%m')
 ORDER BY importe_acumulado DESC;
--- ============================================================
--- 4. Consulta ingresos por día y por tipo de vehículo.
--- ============================================================
+
+-- ====================================================================================
+--  Q4  |  Ingresos por día y por tipo de vehículo
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q4: Ingresos por día y por tipo de vehículo'                     AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SELECT
     DATE(c.charged_at)                            AS dia,
     vt.name                                       AS tipo_vehiculo,
@@ -130,10 +158,14 @@ WHERE c.charge_type IN ('instant','accumulated')
   AND c.status IN ('paid','closed')
 GROUP BY DATE(c.charged_at), vt.name
 ORDER BY dia, vt.name;
--- ============================================================
--- 5. Promedio de permanencia por tipo de vehículo.
---    Considera únicamente estancias finalizadas (con salida).
--- ============================================================
+
+-- ====================================================================================
+--  Q5  |  Promedio de permanencia por tipo de vehículo
+--       (Considera únicamente estancias finalizadas, con salida)
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q5: Promedio de permanencia por tipo de vehículo'                AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SELECT
     vt.name                                  AS tipo_vehiculo,
     COUNT(*)                                 AS estancias_finalizadas,
@@ -152,12 +184,15 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 WHERE s.exit_time IS NOT NULL
 GROUP BY vt.name
 ORDER BY promedio_minutos DESC;
--- ============================================================
--- 6. Identificar vehículos con más de una estancia abierta.
---    La regla de negocio está forzada por el índice único
---    (vehicle_id, is_open) del esquema; por tanto, esta consulta
---    solo devuelve filas si los datos son inconsistentes.
--- ============================================================
+
+-- ====================================================================================
+--  Q6  |  Vehículos con más de una estancia abierta
+--       (La regla está forzada por el UNIQUE de open_key: solo debe
+--        devolver filas si los datos son inconsistentes)
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q6: Vehículos con más de una estancia abierta (debe salir vacío)' AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SELECT
     v.plate,
     vt.name          AS tipo_vehiculo,
@@ -168,9 +203,13 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 WHERE s.exit_time IS NULL
 GROUP BY v.plate, vt.name
 HAVING COUNT(*) > 1;
--- ============================================================
--- 7. Detectar registros con fechas inconsistentes.
--- ============================================================
+
+-- ====================================================================================
+--  Q7  |  Registros con fechas/importes inconsistentes
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q7: Registros con fechas/importes inconsistentes'                AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 -- 7a. Salida anterior a la entrada (bloqueada por CHECK; escaneo defensivo)
 SELECT 'exit_antes_entrada'        AS inconsistencia, s.id, v.plate, s.entry_time, s.exit_time
 FROM stays s
@@ -198,7 +237,7 @@ WHERE s.paid = 1
 UNION
 
 -- 7d. Importe registrado que no coincide con el cálculo de la tarifa
---     (una estancia pagada debe igualar minutos * tarifa).
+--     (una estancia pagada debe igualar minutos * tarifa)
 SELECT 'importe_no_coincide'       AS inconsistencia, s.id, v.plate, s.entry_time, s.exit_time
 FROM stays s
 JOIN vehicles v ON v.id = s.vehicle_id
@@ -207,10 +246,14 @@ WHERE s.paid = 1
   AND s.exit_time IS NOT NULL
   AND ROUND(TIMESTAMPDIFF(MINUTE, s.entry_time, s.exit_time) * t.price_per_minute, 2)
       <> ROUND(IFNULL(s.amount, -1), 2);
--- ============================================================
--- 8. Consultar los vehículos con mayor tiempo acumulado durante el mes.
---    Reemplaza @PERIODO_MES con el primer día del mes (ej. 2026-09-01).
--- ============================================================
+
+-- ====================================================================================
+--  Q8  |  Vehículos con mayor tiempo acumulado durante el mes
+--       (Reemplaza @PERIODO_MES con el primer día del mes, ej. 2026-09-01)
+-- ====================================================================================
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
+SELECT 'Q8: Vehículos con mayor tiempo acumulado durante el mes (@PERIODO_MES)' AS 'CONSULTA EN EJECUCION';
+SELECT '================================================================' AS 'CONSULTA EN EJECUCION';
 SET @PERIODO_MES = '2026-09-01';
 
 SELECT
