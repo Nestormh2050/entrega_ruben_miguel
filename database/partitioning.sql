@@ -31,8 +31,7 @@
 -- ============================================================
 
 USE neology_parking;
-
---------------------------------------------------------------
+-- ============================================================
 -- 0. Idempotencia: si ya estaba particionada, quitar particiones
 --    (verificando antes si realmente tiene particiones)
 -- ------------------------------------------------------------
@@ -52,14 +51,13 @@ SET @stmt_remove_partition = IF(
 PREPARE s_remove_partition FROM @stmt_remove_partition;
 EXECUTE s_remove_partition;
 DEALLOCATE PREPARE s_remove_partition;
-
---------------------------------------------------------------
+-- ============================================================
 -- 1. Cambiar PK de audit_log a (id, changed_at)
 --    Requisito de particionado: la PK debe incluir la columna
 --    de la expresión de partición. id sigue siendo único.
 --    Pasos separados porque MariaDB no combina MODIFY
 --    (AUTO_INCREMENT) con DROP PRIMARY KEY en una sola ALTER.
---------------------------------------------------------------
+-- ============================================================
 ALTER TABLE audit_log
     MODIFY id BIGINT UNSIGNED NOT NULL;
 
@@ -69,11 +67,10 @@ ALTER TABLE audit_log
 
 ALTER TABLE audit_log
     MODIFY id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;
-
---------------------------------------------------------------
+-- ============================================================
 -- 2. Particionar por RANGE mensual con TO_DAYS
 --    Nombres de partición: pYYYYMM (frontera = día 1 del mes next)
---------------------------------------------------------------
+-- ============================================================
 ALTER TABLE audit_log
     PARTITION BY RANGE (TO_DAYS(changed_at)) (
         PARTITION p202608 VALUES LESS THAN (TO_DAYS('2026-09-01')),
@@ -85,8 +82,7 @@ ALTER TABLE audit_log
         PARTITION p202702 VALUES LESS THAN (TO_DAYS('2027-03-01')),
         PARTITION pa_siguientes VALUES LESS THAN (TO_DAYS('2030-01-01'))
     );
-
---------------------------------------------------------------
+-- ============================================================
 -- 3. Mantenimiento: asegura la cobertura del periodo pedido
 --    creando (si falta) la partición del MES SIGUIENTE al
 --    último creado, comparable con p_anio_mes. Solo se crean
@@ -94,7 +90,7 @@ ALTER TABLE audit_log
 --    estrictamente crecientes.
 --    Uso (cron mensual): CALL maint_partitions_audit(202703);
 --    pedir un mes ya cubierto es un no-op.
---------------------------------------------------------------
+-- ============================================================
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS maint_partitions_audit$$

@@ -36,10 +36,9 @@ BEGIN
         violaciones INT          NOT NULL,
         estado      VARCHAR(10)  NOT NULL
     ) ENGINE = MEMORY;
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 1. Reglas de unicidad
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'UQ: placas duplicadas en vehicles',
            COUNT(*),
@@ -59,10 +58,9 @@ BEGIN
     FROM (SELECT vehicle_id FROM stays
           WHERE exit_time IS NULL
           GROUP BY vehicle_id HAVING COUNT(*) > 1) s;
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 2. Chequeos CHECK constraints
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'CHK: exit_time <= entry_time',
            COUNT(*),
@@ -92,10 +90,9 @@ BEGIN
            COUNT(*),
            IF(COUNT(*) = 0, 'PASS', 'FAIL')
     FROM tariffs WHERE valid_to IS NOT NULL AND valid_to <= valid_from;
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 3. Reglas de pago e importes
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'REG: estancia con entrada en el futuro',
            COUNT(*),
@@ -116,10 +113,9 @@ BEGIN
     WHERE s.paid = 1 AND s.exit_time IS NOT NULL
       AND ROUND(TIMESTAMPDIFF(MINUTE, s.entry_time, s.exit_time) * t.price_per_minute, 2)
           <> ROUND(IFNULL(s.amount, -1), 2);
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 4. Integridad referencial (FK)
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'FK: stays sin vehículo válido',
            COUNT(*),
@@ -177,10 +173,9 @@ BEGIN
            IF(COUNT(*) = 0, 'PASS', 'FAIL')
     FROM monthly_close_items mci
     WHERE NOT EXISTS (SELECT 1 FROM residents r WHERE r.id = mci.resident_id);
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 5. Reglas de negocio por tipo de cobro
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'REG: vehículo RESIDENTE sin resident_id',
            COUNT(*),
@@ -208,10 +203,9 @@ BEGIN
            COUNT(*),
            IF(COUNT(*) = 0, 'PASS', 'FAIL')
     FROM charges WHERE charge_type = 'exempt' AND amount <> 0;
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 6. Consistencia del detalle de cierres mensuales
-    ----------------------------------------------------------
+-- ============================================================
     INSERT INTO _reporte (chequeo, violaciones, estado)
     SELECT 'REG: mci sin coherencia total (minutos/actividades/importe)',
            COUNT(*),
@@ -227,10 +221,9 @@ BEGIN
           FROM monthly_close_items
           GROUP BY monthly_close_id, resident_id
           HAVING COUNT(*) > 1) mci;
-
-    ----------------------------------------------------------
+-- ============================================================
     -- 7. Resumen
-    ----------------------------------------------------------
+-- ============================================================
     SELECT SUM(violaciones) INTO v_total_violaciones FROM _reporte;
     SELECT COUNT(*) INTO v_total_checks FROM _reporte;
 

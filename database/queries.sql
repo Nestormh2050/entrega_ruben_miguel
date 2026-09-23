@@ -13,10 +13,9 @@
 -- ====================================================================================
 
 USE neology_parking;
-
---------------------------------------------------------------------------------------
+-- ============================================================
 -- 1. Consultar loa Vehículos que se encuentran actualmente dentro del estacionamiento.
---------------------------------------------------------------------------------------
+-- ============================================================
 SELECT
     v.plate,
     vt.name                                    AS tipo_vehiculo,
@@ -30,11 +29,10 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 LEFT JOIN residents r ON r.id = v.resident_id
 WHERE s.exit_time IS NULL
 ORDER BY s.entry_time;
-
-----------------------------------------------------------------------
+-- ============================================================
 -- 2. Calcular la duración y el importe correspondiente a una estancia.
 --    Reemplaza @STAY_ID por el id de la estancia (ej. 3).
-----------------------------------------------------------------------
+-- ============================================================
 SET @STAY_ID = 3;
 
 SELECT
@@ -67,13 +65,12 @@ JOIN vehicles v      ON v.id = s.vehicle_id
 JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 JOIN tariffs t        ON t.id = s.tariff_id
 WHERE s.id = @STAY_ID;
-
---------------------------------------------------------------
+-- ============================================================
 -- 3. Generar el reporte mensual de residentes.
 --    Reemplaza @PERIODO con el periodo en formato "YYYY-MM".
 --    Se apoya en el cierre mensual para periodos cerrados y lo
 --    recalcula en vivo para el periodo en curso.
---------------------------------------------------------------
+-- ============================================================
 SET @PERIODO = '2026-09';
 
 -- 3a. Periodos cerrados (histórico materializado)
@@ -116,10 +113,9 @@ WHERE v.resident_id IS NOT NULL
   AND s.entry_time <= NOW()   -- se excluyen entradas futuras (anomalía de Q7)
 GROUP BY v.resident_id, r.name, DATE_FORMAT(s.entry_time, '%Y-%m')
 ORDER BY importe_acumulado DESC;
-
---------------------------------------------------------------
+-- ============================================================
 -- 4. Consulta ingresos por día y por tipo de vehículo.
---------------------------------------------------------------
+-- ============================================================
 SELECT
     DATE(c.charged_at)                            AS dia,
     vt.name                                       AS tipo_vehiculo,
@@ -134,11 +130,10 @@ WHERE c.charge_type IN ('instant','accumulated')
   AND c.status IN ('paid','closed')
 GROUP BY DATE(c.charged_at), vt.name
 ORDER BY dia, vt.name;
-
---------------------------------------------------------------
+-- ============================================================
 -- 5. Promedio de permanencia por tipo de vehículo.
 --    Considera únicamente estancias finalizadas (con salida).
---------------------------------------------------------------
+-- ============================================================
 SELECT
     vt.name                                  AS tipo_vehiculo,
     COUNT(*)                                 AS estancias_finalizadas,
@@ -157,13 +152,12 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 WHERE s.exit_time IS NOT NULL
 GROUP BY vt.name
 ORDER BY promedio_minutos DESC;
-
------------------------------------------------------------------
+-- ============================================================
 -- 6. Identificar vehículos con más de una estancia abierta.
 --    La regla de negocio está forzada por el índice único
 --    (vehicle_id, is_open) del esquema; por tanto, esta consulta
 --    solo devuelve filas si los datos son inconsistentes.
-------------------------------------------------------------------
+-- ============================================================
 SELECT
     v.plate,
     vt.name          AS tipo_vehiculo,
@@ -174,11 +168,9 @@ JOIN vehicle_types vt ON vt.id = v.vehicle_type_id
 WHERE s.exit_time IS NULL
 GROUP BY v.plate, vt.name
 HAVING COUNT(*) > 1;
-
---------------------------------------------------------------
+-- ============================================================
 -- 7. Detectar registros con fechas inconsistentes.
---------------------------------------------------------------
-
+-- ============================================================
 -- 7a. Salida anterior a la entrada (bloqueada por CHECK; escaneo defensivo)
 SELECT 'exit_antes_entrada'        AS inconsistencia, s.id, v.plate, s.entry_time, s.exit_time
 FROM stays s
@@ -215,11 +207,10 @@ WHERE s.paid = 1
   AND s.exit_time IS NOT NULL
   AND ROUND(TIMESTAMPDIFF(MINUTE, s.entry_time, s.exit_time) * t.price_per_minute, 2)
       <> ROUND(IFNULL(s.amount, -1), 2);
-
--------------------------------------------------------------------------
+-- ============================================================
 -- 8. Consultar los vehículos con mayor tiempo acumulado durante el mes.
 --    Reemplaza @PERIODO_MES con el primer día del mes (ej. 2026-09-01).
---------------------------------------------------------------------------
+-- ============================================================
 SET @PERIODO_MES = '2026-09-01';
 
 SELECT

@@ -20,17 +20,15 @@
 -- ============================================================
 
 USE neology_parking;
-
---------------------------------------------------------------
+-- ============================================================
 -- Análisis de Consulta 1: vehículos dentro del estacionamiento
 -- Original:
 --   SELECT ... FROM stays WHERE exit_time IS NULL
 -- Problema: escanea toda la tabla si no hay índice sobre exit_time.
---------------------------------------------------------------
+-- ============================================================
 -- Se elimina el índice idx_stays_exit redundante y se reemplaza
 -- por un índice compuesto más selectivo que cubre la consulta.
---------------------------------------------------------------
-
+-- ============================================================
 -- Eliminar el índice simple existente (será reemplazado).
 -- Idempotente: solo se dropea si el índice existe realmente.
 SET @has_idx_stays_exit = (
@@ -75,18 +73,15 @@ DEALLOCATE PREPARE s_create;
 --   * UPDATE al cerrar estancia (exit_time): trivial (columna de escritura).
 --   * SELECT: full index-only scan en lugar de full table scan → 1000x más rápido
 --     a partir de ~1 millón de registros.
-
-
---------------------------------------------------------------
+-- ============================================================
 -- Análisis de Consulta 7: inconsistencias de fechas
 -- Sub-consulta: entries where entry_time > NOW()
 -- Sub-consulta: pagada pero sin datos
 -- Procesamiento UNION hace full scans en ambas partes.
---------------------------------------------------------------
+-- ============================================================
 -- Se crea un índice que cubre la sub-consulta de fechas futuras
 -- y otro parcial (solo pagadas sin pago) para evitar full scan.
---------------------------------------------------------------
-
+-- ============================================================
 -- Para detectar entradas futuras: rango sobre entry_time.
 SET @has_idx = (
     SELECT COUNT(*) FROM information_schema.statistics
@@ -127,19 +122,16 @@ DEALLOCATE PREPARE s_create;
 --   * 2 índices adicionales sobre stays → 2 B-tree updates por INSERT.
 --   * Escritura de ~0.5ms por índice adicional (aceptable en un sistema
 --     de estacionamiento donde las entradas son ~50/minuto máximo).
-
-
---------------------------------------------------------------
+-- ============================================================
 -- Análisis de Consulta 4: ingresos por día y tipo
 -- Joins charges → stays → vehicles → vehicle_types
 -- GROUP BY date(charged_at), vt.name con file sort.
---------------------------------------------------------------
+-- ============================================================
 -- Los índices existentes cubren bien los joins; el cuello de botella
 -- es el GROUP BY sobre charges.charged_at.
---------------------------------------------------------------
+-- ============================================================
 -- Se agrega un índice sobre charges que cubra el GROUP BY y el SUM.
---------------------------------------------------------------
-
+-- ============================================================
 SET @has_idx = (
     SELECT COUNT(*) FROM information_schema.statistics
     WHERE TABLE_SCHEMA = 'neology_parking'
@@ -166,18 +158,15 @@ DEALLOCATE PREPARE s_create;
 --   * Un INSERT adicional con este índice cuesta ~0.3ms.
 --   * Las búsquedas de reportes financiarios (a menudo ejecutadas
 --     manualmente por contabilidad) reducen su tiempo de 400ms a 2ms.
-
-
---------------------------------------------------------------
+-- ============================================================
 -- Análisis de Consulta 8: mayor tiempo acumulado
 -- JOIN sobre stays, vehicles, vehicle_types, residents
 -- GROUP BY plate, tipo, residente ORDER BY minutos DESC
---------------------------------------------------------------
+-- ============================================================
 -- Se refuerza el índice de months-slicing: (entry_time) ya existe.
 -- Se reemplaza por un índice más ancho que cubra las columnas
 -- usadas para evitar "Using index" por tabla de datos.
---------------------------------------------------------------
-
+-- ============================================================
 SET @has_idx = (
     SELECT COUNT(*) FROM information_schema.statistics
     WHERE TABLE_SCHEMA = 'neology_parking'
@@ -198,17 +187,14 @@ DEALLOCATE PREPARE s_create;
 --   2. vehicle_id = join con vehicles
 --   3. exit_time = TIMESTAMPDIFF calcula minutos (sin tocar tabla)
 -- Evita "Using index" el plan completamente, ejecutándose desde el B-tree.
-
-
---------------------------------------------------------------
+-- ============================================================
 -- Análisis de Consulta 3b: reporte mensual residentes
 -- Similar a Q8 pero filtra por resident_id
---------------------------------------------------------------
+-- ============================================================
 -- Para optimizar el GROUP BY por residente, se refuerza con
 -- un índice sobre vehicles.resident_id ya existente.
 -- El cuello de botella está en stays:
---------------------------------------------------------------
-
+-- ============================================================
 SET @has_idx = (
     SELECT COUNT(*) FROM information_schema.statistics
     WHERE TABLE_SCHEMA = 'neology_parking'
@@ -229,11 +215,9 @@ DEALLOCATE PREPARE s_create;
 -- porque es el camino de navegación (join), entry_time rango.
 -- Un segundo índice NO mejora aquí; la selección por residente se
 -- logra navegando la FK de vehicles → stays.
-
-
---------------------------------------------------------------
+-- ============================================================
 -- Resumen: impacto de los índices en operaciones de escritura
---------------------------------------------------------------
+-- ============================================================
 -- Antes: stays = 5 índices (pk + 3 existentes + open_key unique)
 -- Después: stays = 8 índices (3 antiguos + 5 nuevos propuestos)
 -- Cada INSERT/UPDATE en stays ejecuta:
@@ -252,4 +236,4 @@ DEALLOCATE PREPARE s_create;
 --   ... y restaurar después.
 -- * Se recomienda ADD INDEX con ALGORITHM=INPLACE en MariaDB ≥10.5
 --   para evitar la tabla temporal de datos copiados.
---------------------------------------------------------------
+-- ============================================================
